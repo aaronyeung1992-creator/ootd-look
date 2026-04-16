@@ -8,6 +8,17 @@ export default defineConfig({
     outDir: 'docs',
     emptyOutDir: true,
     sourcemap: false,
+    lib: {
+      entry: 'src/main.jsx',
+      name: 'OOTDApp',
+      formats: ['iife'],
+      fileName: () => 'index.js',
+    },
+    rollupOptions: {
+      output: {
+        inlineDynamicImports: true,
+      },
+    },
   },
   server: {
     proxy: {
