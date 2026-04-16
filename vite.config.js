@@ -2,29 +2,20 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  base: '/ootd-look/',
   plugins: [react()],
   build: {
     outDir: 'docs',
     emptyOutDir: true,
     sourcemap: false,
-    lib: {
-      entry: 'src/main.jsx',
-      name: 'OOTDApp',
-      formats: ['iife'],
-      fileName: () => 'index.js',
-    },
+    cssCodeSplit: false,
+    codeSplitting: false,
     rollupOptions: {
       output: {
+        entryFileNames: 'app.js',
+        chunkFileNames: 'chunk.js',
+        assetFileNames: 'asset.[ext]',
+        format: 'iife',
         inlineDynamicImports: true,
-      },
-    },
-  },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
       },
     },
   },
