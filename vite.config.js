@@ -2,13 +2,13 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  base: './',
+  base: '/ootd-look/',
   plugins: [react()],
   build: {
-    outDir: 'dist',
+    outDir: 'docs',
+    emptyOutDir: true,
     sourcemap: false,
   },
-  // Vercel Serverless Functions 开发时本地代理
   server: {
     proxy: {
       '/api': {
