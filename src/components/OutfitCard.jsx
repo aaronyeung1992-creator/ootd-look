@@ -1,7 +1,7 @@
 /**
  * 今日穿搭卡片
  */
-import { Shirt, Tag } from 'lucide-react';
+import { Shirt, Tag, Sparkles, Wand2 } from 'lucide-react';
 
 const OUTFIT_ICONS = {
   top: '👕',
@@ -18,6 +18,8 @@ const OUTFIT_LABELS = {
 };
 
 export default function OutfitCard({ outfit }) {
+  const hasPersonalization = outfit?.sceneTip || outfit?.colorTip || outfit?.accessoryTip;
+
   return (
     <div className="glass rounded-2xl p-5 animate-slide-up">
       {/* 标题行 */}
@@ -27,9 +29,30 @@ export default function OutfitCard({ outfit }) {
         </div>
         <div>
           <h2 className="text-white font-semibold text-base">今日穿搭灵感 OOTD</h2>
-          <p className="text-white/60 text-xs mt-0.5">{outfit.summary}</p>
+          <p className="text-white/60 text-xs mt-0.5">
+            {outfit.personalizedSummary || outfit.summary}
+          </p>
         </div>
       </div>
+
+      {/* 个性化推荐语 */}
+      {hasPersonalization && (
+        <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-amber-400/10 to-orange-400/10 border border-amber-400/20">
+          <div className="flex items-center gap-2 mb-2">
+            <Wand2 size={14} className="text-amber-300" />
+            <span className="text-amber-200 text-xs font-medium">个性化建议</span>
+          </div>
+          {outfit.sceneTip && (
+            <p className="text-white/80 text-sm mb-1">今日场景：{outfit.sceneTip}</p>
+          )}
+          {outfit.colorTip && (
+            <p className="text-white/80 text-sm mb-1">推荐色系：{outfit.colorTip}</p>
+          )}
+          {outfit.accessoryTip && (
+            <p className="text-white/70 text-sm">配饰建议：{outfit.accessoryTip}</p>
+          )}
+        </div>
+      )}
 
       {/* 穿搭列表 */}
       <div className="space-y-3">
@@ -50,6 +73,21 @@ export default function OutfitCard({ outfit }) {
       {outfit.rainAddon && (
         <div className="mt-4 pt-3 border-t border-white/10">
           <p className="text-amber-200 text-sm">{outfit.rainAddon}</p>
+        </div>
+      )}
+
+      {/* 个性化小贴士 */}
+      {outfit.tips && outfit.tips.length > 0 && (
+        <div className="mt-4 pt-3 border-t border-white/10">
+          <div className="flex items-center gap-1 mb-2">
+            <Sparkles size={12} className="text-amber-300" />
+            <span className="text-amber-200/80 text-xs">搭配小贴士</span>
+          </div>
+          <div className="space-y-1">
+            {outfit.tips.slice(0, 3).map((tip, i) => (
+              <p key={i} className="text-white/50 text-xs">· {tip}</p>
+            ))}
+          </div>
         </div>
       )}
 

@@ -1,5 +1,5 @@
 // 微信 JSSDK 分享服务
-// ⚠️ 需后端提供 /api/wx-signature 接口
+// ⚠️ 需后端提供 /api/wx-signature 接口（无后端时静默跳过）
 
 // 判断是否在微信内置浏览器
 export function isWechatBrowser() {
@@ -34,6 +34,13 @@ async function fetchSignature(url) {
     : '/api/wx-signature'
 
   const res = await fetch(`${apiUrl}?url=${encodeURIComponent(url)}`)
+
+  // 检查响应是否是有效的 JSON
+  const contentType = res.headers.get('content-type')
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error('签名服务不可用')
+  }
+
   const data = await res.json()
 
   if (!data.success) {
@@ -56,6 +63,12 @@ export async function initWechatShare(options = {}) {
   // 仅在微信内执行
   if (!isWechatBrowser()) {
     return { configured: false, reason: '非微信浏览器，跳过 JSSDK' }
+  }
+
+  // 检查是否有后端配置
+  const hasBackend = import.meta.env.VITE_API_BASE
+  if (!hasBackend) {
+    return { configured: false, reason: '未配置公众号签名服务' }
   }
 
   try {
@@ -102,6 +115,7 @@ export async function initWechatShare(options = {}) {
       })
     })
   } catch (err) {
-    return { configured: false, reason: err.message }
+    // 静默失败，不显示错误提示
+    return { configured: false, reason: '分享服务不可用' }
   }
 }

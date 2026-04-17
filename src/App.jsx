@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Share2, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { RefreshCw, Share2, X, CheckCircle, AlertCircle, User } from 'lucide-react';
 
 import LoadingSpinner from './components/LoadingSpinner.jsx';
 import WeatherHeader from './components/WeatherHeader.jsx';
 import OutfitCard from './components/OutfitCard.jsx';
 import FortuneCard from './components/FortuneCard.jsx';
+import ProfileSetup from './components/ProfileSetup.jsx';
 
 import { getCurrentPosition, reverseGeocode } from './services/geolocation.js';
 import { fetchWeather } from './services/weather.js';
@@ -12,6 +13,8 @@ import { getTodayFortune } from './services/fortune.js';
 import { getOutfitAdvice } from './utils/outfitEngine.js';
 import { getWeatherInfo } from './utils/weatherCodeMap.js';
 import { initWechatShare, isWechatBrowser } from './services/wechatShare.js';
+import { enhanceOutfit } from './services/outfitEnhancer.js';
+import { needsProfileSetup, getProfile, resetProfile } from './services/profile.js';
 
 function getTodayStr() {
   const d = new Date();
@@ -24,6 +27,28 @@ function buildShareTitle(weather, fortune) {
   const tempStr = temp != null ? `${Math.round(temp)}°C` : '';
   const luckLabel = fortune?.luck?.label || '';
   return `OOTD · ${tempStr} ${luckLabel} 今日穿搭运势`;
+}
+
+// 城市坐标粗略匹配（备用方案）
+const CITY_GUESS = [
+  { lat: [29.5, 31.5], lon: [120.5, 122.5], name: '上海' },
+  { lat: [39.8, 40.0], lon: [116.3, 116.6], name: '北京' },
+  { lat: [22.5, 24.0], lon: [113.8, 115.0], name: '深圳' },
+  { lat: [30.2, 30.6], lon: [114.0, 115.0], name: '武汉' },
+  { lat: [30.2, 30.4], lon: [120.0, 121.0], name: '杭州' },
+  { lat: [31.8, 32.1], lon: [117.2, 118.0], name: '合肥' },
+  { lat: [23.0, 23.3], lon: [113.2, 113.5], name: '广州' },
+  { lat: [29.5, 29.8], lon: [106.4, 106.6], name: '重庆' },
+  { lat: [31.2, 31.5], lon: [121.4, 121.6], name: '上海' },
+];
+
+function guessCityName(lat, lon) {
+  for (const c of CITY_GUESS) {
+    if (lat >= c.lat[0] && lat <= c.lat[1] && lon >= c.lon[0] && lon <= c.lon[1]) {
+      return c.name;
+    }
+  }
+  return null;
 }
 
 export default function App() {
@@ -46,6 +71,11 @@ export default function App() {
   // 微信分享状态
   const [wxShareStatus, setWxShareStatus] = useState({ configured: false, reason: '' });
 
+  // 人设设置相关
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [hasProfile, setHasProfile] = useState(false);
+  const [enhancedOutfit, setEnhancedOutfit] = useState(null);
+
   const loadData = useCallback(async () => {
     setStatus('loading');
     setErrorMsg('');
@@ -59,6 +89,10 @@ export default function App() {
       if (!cityName) {
         setLoadingMsg('正在识别城市…');
         cityName = await reverseGeocode(pos.lat, pos.lon);
+        // 如果逆地理编码失败，用坐标猜测城市
+        if (!cityName) {
+          cityName = guessCityName(pos.lat, pos.lon);
+        }
       }
       setCity(cityName || `${pos.lat.toFixed(2)}, ${pos.lon.toFixed(2)}`);
 
@@ -69,11 +103,26 @@ export default function App() {
       const outfitData = getOutfitAdvice(weatherData.apparentTemperature, weatherData.weatherCode);
       setOutfit(outfitData);
 
+      // 检查用户画像并增强穿搭推荐
+      const profileComplete = !needsProfileSetup();
+      setHasProfile(profileComplete);
+      if (profileComplete) {
+        const fortuneData = getTodayFortune(fortuneSalt);
+        const enhanced = enhanceOutfit(outfitData, weatherData);
+        setEnhancedOutfit(enhanced);
+        setFortune(fortuneData);
+        // 首次检测到已完成画像时弹出个性化提示
+        if (!localStorage.getItem('ootd_profile_tip_shown') && enhanced.sceneTip) {
+          localStorage.setItem('ootd_profile_tip_shown', '1');
+        }
+      } else {
+        const fortuneData = getTodayFortune(fortuneSalt);
+        setFortune(fortuneData);
+        setEnhancedOutfit(outfitData);
+      }
+
       const wi = getWeatherInfo(weatherData.weatherCode);
       setBgGradient(wi.bg);
-
-      const fortuneData = getTodayFortune(fortuneSalt);
-      setFortune(fortuneData);
 
       setStatus('success');
     } catch (e) {
@@ -102,6 +151,26 @@ export default function App() {
   useEffect(() => {
     loadData();
   }, []); // eslint-disable-line
+
+  // 首次加载时检查是否需要弹出人设引导
+  useEffect(() => {
+    if (status === 'success' && !hasProfile) {
+      // 延迟显示，让用户先看到天气加载完成
+      const timer = setTimeout(() => {
+        setShowProfileSetup(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [status, hasProfile]);
+
+  // 人设设置完成后的回调
+  const handleProfileComplete = () => {
+    setShowProfileSetup(false);
+    setHasProfile(true);
+    localStorage.removeItem('ootd_profile_tip_shown');
+    // 重新加载数据以应用新画像
+    loadData();
+  };
 
   // 换一签
   const handleRefreshFortune = () => {
@@ -149,13 +218,12 @@ export default function App() {
         {/* Success */}
         {status === 'success' && weather && outfit && fortune && (
           <div className="space-y-4 animate-fade-in">
-            {/* 微信分享状态提示（仅在微信内且配置失败时显示） */}
-            {isWechatBrowser() && !wxShareStatus.configured && (
+            {/* 微信分享状态提示（仅在微信内且配置失败时显示，且排除无后端的情况） */}
+            {isWechatBrowser() && !wxShareStatus.configured && wxShareStatus.reason &&
+             !['未配置公众号签名服务', '分享服务不可用', '非微信浏览器，跳过 JSSDK'].includes(wxShareStatus.reason) && (
               <div className="glass rounded-xl px-3 py-2 flex items-center gap-2 text-xs text-white/70">
                 <AlertCircle size={13} className="text-amber-300 shrink-0" />
-                {wxShareStatus.reason
-                  ? `分享配置：${wxShareStatus.reason}`
-                  : '分享配置中…'}
+                {wxShareStatus.reason}
               </div>
             )}
             {isWechatBrowser() && wxShareStatus.configured && (
@@ -178,7 +246,7 @@ export default function App() {
             )}
 
             <WeatherHeader weather={weather} city={city} fallback={isFallback} />
-            <OutfitCard outfit={outfit} />
+            <OutfitCard outfit={enhancedOutfit || outfit} />
             <FortuneCard fortune={fortune} onRefresh={handleRefreshFortune} />
 
             {/* 操作栏 */}
@@ -198,6 +266,19 @@ export default function App() {
                 生成本日签
               </button>
             </div>
+
+            {/* 人设设置入口 */}
+            <button
+              onClick={() => setShowProfileSetup(true)}
+              className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors active:scale-95 flex items-center justify-center gap-2 ${
+                hasProfile
+                  ? 'bg-amber-400/20 text-amber-200/80 hover:bg-amber-400/30'
+                  : 'bg-white/10 text-white/70 hover:bg-white/20'
+              }`}
+            >
+              <User size={14} />
+              {hasProfile ? '调整我的偏好' : '✨ 让我更懂你，定制专属推荐'}
+            </button>
 
             <div className="h-4" />
           </div>
@@ -251,6 +332,14 @@ export default function App() {
             )}
           </div>
         </div>
+      )}
+
+      {/* 人设设置弹窗 */}
+      {showProfileSetup && (
+        <ProfileSetup
+          onComplete={handleProfileComplete}
+          onClose={() => setShowProfileSetup(false)}
+        />
       )}
     </div>
   );

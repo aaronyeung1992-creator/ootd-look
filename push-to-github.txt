@@ -1,0 +1,6 @@
+# OOTD 部署到 GitHub Pages - 推送命令
+# 复制下面两条命令到终端运行即可
+
+git remote add origin https://github.com/aaronyeung1992-creator/ootd-look.git
+
+git push -u origin master

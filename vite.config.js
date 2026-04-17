@@ -2,10 +2,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  base: '/ootd-look/',
+  base: './',
   plugins: [react()],
   build: {
-    outDir: 'docs',
+    outDir: 'dist',
     emptyOutDir: true,
     sourcemap: false,
   },
