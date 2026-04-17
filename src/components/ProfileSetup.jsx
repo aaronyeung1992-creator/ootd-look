@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Check, Sparkles } from 'lucide-react';
 import { PROFILE_OPTIONS, saveProfile, getProfile, resetProfile } from '../services/profile';
 
-const QUESTION_ORDER = ['gender', 'scene', 'body', 'colorStyle', 'habit'];
+const QUESTION_ORDER = ['gender', 'scene', 'body', 'colorStyle', 'habit', 'birthday'];
 
 export default function ProfileSetup({ onComplete, onClose }) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -33,6 +33,9 @@ export default function ProfileSetup({ onComplete, onClose }) {
         ? current.filter(id => id !== optionId)
         : [...current, optionId];
       setAnswers(prev => ({ ...prev, [currentKey]: newValue }));
+    } else if (currentQuestion?.type === 'birthday') {
+      // 生日：直接更新
+      setAnswers(prev => ({ ...prev, [currentKey]: optionId }));
     } else {
       // 单选，直接下一步
       setAnswers(prev => ({ ...prev, [currentKey]: optionId }));
@@ -44,6 +47,11 @@ export default function ProfileSetup({ onComplete, onClose }) {
     }
   };
 
+  const handleBirthdayChange = (e) => {
+    const value = e.target.value;
+    setAnswers(prev => ({ ...prev, [currentKey]: value }));
+  };
+
   const isSelected = (optionId) => {
     if (isMulti) {
       return (currentValue || []).includes(optionId);
@@ -52,6 +60,10 @@ export default function ProfileSetup({ onComplete, onClose }) {
   };
 
   const canProceed = () => {
+    if (currentQuestion?.type === 'birthday') {
+      // 生日是选填的
+      return true;
+    }
     if (isMulti) {
       return (currentValue || []).length > 0;
     }
@@ -115,10 +127,13 @@ export default function ProfileSetup({ onComplete, onClose }) {
           </div>
           <p className="text-white/40 text-xs mt-2 text-right">
             {currentStep + 1} / {QUESTION_ORDER.length}
+            {currentStep === QUESTION_ORDER.length - 1 && currentQuestion?.type === 'birthday' && (
+              <span className="text-amber-300/60 ml-1">（选填）</span>
+            )}
           </p>
         </div>
 
-        {/* 问题内容 */}
+          {/* 问题内容 */}
         <div className="px-6 pb-6">
           <div className="mb-6">
             <h3 className="text-white font-medium text-base mb-1">
@@ -127,39 +142,60 @@ export default function ProfileSetup({ onComplete, onClose }) {
             {isMulti && (
               <p className="text-white/40 text-xs">可多选</p>
             )}
+            {currentQuestion?.type === 'birthday' && currentQuestion?.desc && (
+              <p className="text-amber-300/80 text-xs">{currentQuestion.desc}</p>
+            )}
           </div>
 
-          {/* 选项列表 */}
-          <div className="space-y-3">
-            {currentQuestion?.options.map((option) => (
-              <button
-                key={option.id}
-                onClick={() => handleSelect(option.id)}
-                className={`w-full p-4 rounded-xl text-left transition-all active:scale-98 ${
-                  isSelected(option.id)
-                    ? 'bg-gradient-to-r from-amber-400/30 to-orange-400/30 border border-amber-400/50'
-                    : 'bg-white/5 border border-white/10 hover:bg-white/10'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{option.icon}</span>
-                  <div className="flex-1">
-                    <p className={`font-medium ${isSelected(option.id) ? 'text-white' : 'text-white/80'}`}>
-                      {option.label}
-                    </p>
-                    {option.desc && (
-                      <p className="text-white/40 text-xs mt-0.5">{option.desc}</p>
+          {/* 生日输入特殊处理 */}
+          {currentQuestion?.type === 'birthday' ? (
+            <div className="space-y-4">
+              <input
+                type="date"
+                value={answers.birthday || ''}
+                onChange={handleBirthdayChange}
+                className="w-full p-4 rounded-xl bg-white/10 border border-white/20 text-white text-center text-lg focus:outline-none focus:border-amber-400/50"
+                max={new Date().toISOString().split('T')[0]}
+              />
+              {!answers.birthday && (
+                <p className="text-white/30 text-xs text-center">
+                  不填也能继续~运势一样准
+                </p>
+              )}
+            </div>
+          ) : (
+            /* 选项列表 */
+            <div className="space-y-3">
+              {currentQuestion?.options.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => handleSelect(option.id)}
+                  className={`w-full p-4 rounded-xl text-left transition-all active:scale-98 ${
+                    isSelected(option.id)
+                      ? 'bg-gradient-to-r from-amber-400/30 to-orange-400/30 border border-amber-400/50'
+                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{option.icon}</span>
+                    <div className="flex-1">
+                      <p className={`font-medium ${isSelected(option.id) ? 'text-white' : 'text-white/80'}`}>
+                        {option.label}
+                      </p>
+                      {option.desc && (
+                        <p className="text-white/40 text-xs mt-0.5">{option.desc}</p>
+                      )}
+                    </div>
+                    {isSelected(option.id) && (
+                      <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center">
+                        <Check size={14} className="text-black" />
+                      </div>
                     )}
                   </div>
-                  {isSelected(option.id) && (
-                    <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center">
-                      <Check size={14} className="text-black" />
-                    </div>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* 底部导航 */}
           <div className="flex gap-3 mt-6">

@@ -67,6 +67,13 @@ export const PROFILE_OPTIONS = {
       { id: 'neutral', label: '中性', icon: '🧑' },
     ],
   },
+
+  // ⑥ 生日（选填，用于精准运势）
+  birthday: {
+    label: '你的生日（选填）',
+    desc: '填了生日，运势会更准哦~',
+    type: 'birthday',
+  },
 };
 
 // 默认空画像
@@ -81,9 +88,39 @@ function getEmptyProfile() {
       colorStyle: null,
       habit: null,
       gender: null,
+      birthday: null, // 新增：生日
     },
     completed: false, // 是否完成初次设置
   };
+}
+
+/**
+ * 根据生日计算星座
+ */
+export function getZodiacFromBirthday(birthday) {
+  if (!birthday) return null;
+  const month = parseInt(birthday.split('-')[1]);
+  const day = parseInt(birthday.split('-')[2]);
+
+  const zodiacs = [
+    [20, '魔羯座'], [19, '水瓶座'], [20, '双鱼座'],
+    [20, '白羊座'], [20, '金牛座'], [21, '双子座'],
+    [22, '巨蟹座'], [22, '狮子座'], [22, '处女座'],
+    [22, '天秤座'], [22, '天蝎座'], [21, '射手座'],
+    [21, '魔羯座'],
+  ];
+
+  return zodiacs[month - 1][day <= zodiacs[month - 1][0] ? 0 : 1];
+}
+
+/**
+ * 根据生日计算属相
+ */
+export function getChineseZodiac(birthday) {
+  if (!birthday) return null;
+  const year = parseInt(birthday.split('-')[0]);
+  const animals = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
+  return animals[(year - 1900) % 12];
 }
 
 /**
