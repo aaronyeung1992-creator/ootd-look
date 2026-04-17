@@ -102,7 +102,7 @@ export default function FortuneCard({ fortune, onRefresh }) {
           <div>
             <p className="text-white/50 text-xs">幸运数字</p>
             <p className="text-white/90 text-xs font-medium">
-              {Array.isArray(numbers) ? numbers.join('、') : numbers.join('、')}
+              {Array.isArray(numbers.nums || numbers) ? (numbers.nums || numbers).join('、') : ''}
               {numbers.desc && (
                 <span className="text-white/50 font-normal ml-1">— {numbers.desc}</span>
               )}
