@@ -1,7 +1,7 @@
 /**
  * 今日穿搭卡片
  */
-import { Shirt, Tag, Wand2 } from 'lucide-react';
+import { Shirt, Wand2 } from 'lucide-react';
 
 const OUTFIT_ICONS = {
   top: '👕',
@@ -76,20 +76,6 @@ export default function OutfitCard({ outfit }) {
         </div>
       )}
 
-      {/* 风格标签 */}
-      {outfit.tags && (
-        <div className="flex flex-wrap gap-2 mt-4">
-          {outfit.tags.map((tag) => (
-            <span
-              key={tag}
-              className="px-2.5 py-0.5 rounded-full bg-white/10 text-white/70 text-xs flex items-center gap-1"
-            >
-              <Tag size={10} />
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
