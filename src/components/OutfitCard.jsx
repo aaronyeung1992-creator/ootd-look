@@ -1,7 +1,7 @@
 /**
  * 今日穿搭卡片
  */
-import { Shirt, Tag, Sparkles, Wand2 } from 'lucide-react';
+import { Shirt, Tag, Wand2 } from 'lucide-react';
 
 const OUTFIT_ICONS = {
   top: '👕',
@@ -73,21 +73,6 @@ export default function OutfitCard({ outfit }) {
       {outfit.rainAddon && (
         <div className="mt-4 pt-3 border-t border-white/10">
           <p className="text-amber-200 text-sm">{outfit.rainAddon}</p>
-        </div>
-      )}
-
-      {/* 个性化小贴士 */}
-      {outfit.tips && outfit.tips.length > 0 && (
-        <div className="mt-4 pt-3 border-t border-white/10">
-          <div className="flex items-center gap-1 mb-2">
-            <Sparkles size={12} className="text-amber-300" />
-            <span className="text-amber-200/80 text-xs">搭配小贴士</span>
-          </div>
-          <div className="space-y-1">
-            {outfit.tips.slice(0, 3).map((tip, i) => (
-              <p key={i} className="text-white/50 text-xs">· {tip}</p>
-            ))}
-          </div>
         </div>
       )}
 
