@@ -100,11 +100,14 @@ export default function App() {
       const weatherData = await fetchWeather(pos.lat, pos.lon);
       setWeather(weatherData);
 
-      const outfitData = getOutfitAdvice(weatherData.apparentTemperature, weatherData.weatherCode);
+      // 检查用户画像，取性别
+      const profileComplete = !needsProfileSetup();
+      const profile = profileComplete ? getProfile() : null;
+      const gender = profile?.gender || 'neutral';
+
+      const outfitData = getOutfitAdvice(weatherData.apparentTemperature, weatherData.weatherCode, gender);
       setOutfit(outfitData);
 
-      // 检查用户画像并增强穿搭推荐
-      const profileComplete = !needsProfileSetup();
       setHasProfile(profileComplete);
       if (profileComplete) {
         const fortuneData = getTodayFortune(fortuneSalt);
@@ -311,7 +314,7 @@ export default function App() {
               <p className="text-white/70 text-sm mt-1">{fortune?.luck?.phrase}</p>
               <div className="mt-3 pt-3 border-t border-white/10 flex gap-4 justify-center text-xs text-white/60">
                 <span>幸运色 · {fortune?.color?.name}</span>
-                <span>今日佩戴 · {fortune?.item}</span>
+                <span>今日佩戴 · {typeof fortune?.item === 'string' ? fortune?.item : fortune?.item?.name}</span>
               </div>
             </div>
 

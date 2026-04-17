@@ -39,30 +39,35 @@ const SCENE_CONFIGS = {
 // 身形修饰对应的颜色和款式建议
 const BODY_CONFIGS = {
   pear: {
+    label: '梨形',
     desc: '扬长避短：突出上半身，修饰下半身',
     highlight: ['上装设计感', '收腰款', 'A字裙'],
     hide: ['紧身裤', '浅色下装', '复杂下装'],
     colors: { top: '饱和度高', bottom: '深色/暗色' },
   },
   apple: {
+    label: '苹果形',
     desc: '扬长避短：遮住腹部，优化比例',
     highlight: ['V领', 'A字连衣裙', '高腰裤'],
     hide: ['紧身衣', '高腰紧身', '横向条纹'],
     colors: { top: '深色/冷色', bottom: '中性质感' },
   },
   short: {
+    label: '小个子',
     desc: '显高秘籍：优化比例，拉长线条',
     highlight: ['短款上衣', '高腰裤/裙', '同色系搭配'],
     hide: ['中长款外套', '低腰裤', '宽大款式'],
     colors: { top: '简洁', bottom: '高腰/纯色' },
   },
   broad: {
+    label: '肩宽',
     desc: '平衡肩宽：视觉收缩肩部',
     highlight: ['V领/U领', '深色上衣', '垂感面料'],
     hide: ['垫肩', '泡泡袖', '横条纹'],
     colors: { top: '深色/V领', bottom: '亮色/浅色' },
   },
   legs: {
+    label: '腿型',
     desc: '修饰腿型：隐藏缺点，突出优点',
     highlight: ['直筒裤', '阔腿裤', '长裙'],
     hide: ['紧身裤', '短裤', '复杂图案'],
