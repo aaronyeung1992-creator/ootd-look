@@ -318,15 +318,37 @@ export default function App() {
               </div>
             </div>
 
-            {/* 微信 vs 浏览器不同提示 */}
-            {isWechatBrowser() ? (
-              <div className="text-center">
-                <p className="text-white/60 text-sm mb-2">
-                  分享配置已就绪 ✨
-                </p>
-                <p className="text-white/40 text-xs">
-                  直接点击右上角「···」分享给朋友
-                </p>
+            {/* 分享方式 */}
+            {navigator.share ? (
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.share({
+                      title: `OOTD · ${fortune?.luck?.label} · ${fortune?.color?.name}色`,
+                      text: `${fortune?.luck?.phrase} ✨ ${fortune?.luck?.emoji} 查看今日穿搭运势`,
+                      url: window.location.href,
+                    });
+                  } catch (e) {
+                    // 用户取消分享
+                  }
+                  setShowShareModal(false);
+                }}
+                className="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-semibold transition-colors active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Share2 size={16} />
+                分享到微信 / 更多 App
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  setShowShareModal(false);
+                }}
+                className="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-semibold transition-colors active:scale-95 flex items-center justify-center gap-2"
+              >
+                复制链接分享给朋友
+              </button>
+            )}
               </div>
             ) : (
               <p className="text-white/60 text-sm text-center">
