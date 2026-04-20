@@ -16,10 +16,24 @@ const FEMALE_BOTTOMS = ['A字裙', '百褶裙', '直筒牛仔裤', '阔腿裤', 
 const FEMALE_SHOES = ['小白鞋', '乐福鞋', '玛丽珍鞋', '帆布鞋', '细带凉鞋', '芭蕾鞋'];
 const FEMALE_ACCESSORIES = ['珍珠耳钉', '丝巾', 'mini链条包', '发箍', '手链', '草编包'];
 
-const NEUTRAL_TOPS = ['短袖 / 吊带背心 / 无袖衬衫', '长袖衬衫 / 薄款卫衣', '卫衣 / 针织开衫'];
-const NEUTRAL_BOTTOMS = ['短裤 / 短裙', '宽松牛仔裤 / 休闲长裤', '直筒裤 / A字裙'];
-const NEUTRAL_SHOES = ['帆布鞋 / 乐福鞋', '运动鞋', '凉鞋 / 拖鞋'];
-const NEUTRAL_ACCESSORIES = ['薄外套备在包里', '防晒衣备用', '遮阳帽', '墨镜'];
+// 中性穿搭库（无性别偏好用户）
+const NEUTRAL_TOPS = [
+  '短袖 / 吊带背心', '无袖衬衫', '长袖衬衫',
+  '薄款卫衣', '卫衣', '针织开衫', 'polo衫', '工装衬衫',
+];
+const NEUTRAL_BOTTOMS = [
+  '短裤', '短裙', '宽松牛仔裤', '直筒牛仔裤',
+  '休闲长裤', '卡其裤', '阔腿裤', 'A字裙',
+];
+const NEUTRAL_SHOES = [
+  '帆布鞋', '乐福鞋', '运动鞋', '小白鞋',
+  '凉鞋', '拖鞋', '玛丽珍鞋', '沙漠靴',
+];
+const NEUTRAL_ACCESSORIES = [
+  '薄外套备在包里', '防晒衣备用', '遮阳帽', '墨镜',
+  '帆布包', '棒球帽', '简约皮带', '手表',
+  '链条小包', '针织围巾', '发箍', '运动手环',
+];
 
 /**
  * 简单哈希函数，用日期做种子，每天固定结果
@@ -160,13 +174,16 @@ const OUTFIT_RULES = [
 ];
 
 /**
- * 根据体感温度和天气代码获取穿搭建议
+ * 根据体感温度、天气代码、性别、星座获取穿搭建议
  * @param {number} apparentTemp 体感温度
  * @param {number} weatherCode WMO 天气代码
  * @param {string} gender 性别：'male' | 'female' | 'neutral'
+ * @param {object} options 个性化选项
+ * @param {string|null} options.zodiac 星座
+ * @param {string|null} options.chineseZodiac 属相
  * @returns {Object} 穿搭建议对象
  */
-export function getOutfitAdvice(apparentTemp, weatherCode, gender = 'neutral') {
+export function getOutfitAdvice(apparentTemp, weatherCode, gender = 'neutral', options = {}) {
   const rule = OUTFIT_RULES.find((r) => apparentTemp < r.maxTemp);
   const outfitData = rule || OUTFIT_RULES[OUTFIT_RULES.length - 1];
 
@@ -180,14 +197,19 @@ export function getOutfitAdvice(apparentTemp, weatherCode, gender = 'neutral') {
     tags: outfitData.male?.tags || outfitData.female?.tags || ['日常穿搭'],
   };
 
-  const seed = getTodaySeed();
+  // 个性化 seed：日期 + 性别 + 星座 + 属相
+  // 确保：① 同一天稳定 ② 不同用户不同结果 ③ 每天自动轮换
+  const dateSeed = getTodaySeed();
+  const userDim = `${gender}|${options.zodiac || ''}|${options.chineseZodiac || ''}`;
+  const seed = hashSeeded(dateSeed, userDim);
 
-  // 每天从对应性别的选项库里选一个（基于日期哈希，同一天固定结果）
+  const pick = (arr, idx) => arr[hashSeeded(seed, idx) % arr.length];
+
   const outfit = {
-    top: genderData.top[hashSeeded(seed, 1) % genderData.top.length],
-    bottom: genderData.bottom[hashSeeded(seed, 2) % genderData.bottom.length],
-    shoes: genderData.shoes[hashSeeded(seed, 3) % genderData.shoes.length],
-    accessory: genderData.accessory[hashSeeded(seed, 4) % genderData.accessory.length],
+    top: pick(genderData.top, 1),
+    bottom: pick(genderData.bottom, 2),
+    shoes: pick(genderData.shoes, 3),
+    accessory: pick(genderData.accessory, 4),
     summary: genderData.summary,
     tags: genderData.tags || [],
   };

@@ -59,19 +59,31 @@ const LUCKY_COLORS = [
   { name: '烟灰蓝', desc: '沉稳又特别，懂的人自然会注意到', bg: '#607D8B', text: 'white' },
 ];
 
-// 幸运配饰 + 具体描述
+// 幸运配饰 + 具体描述（扩容至20个）
 const LUCKY_ITEMS = [
   { name: '珍珠手链', desc: '举手投足间有小优雅' },
   { name: '转运红绳', desc: '老祖宗的智慧，信则有' },
   { name: '蓝晶石项链', desc: '沉静气质，今天需要你稳住' },
   { name: '银质耳环', desc: '小细节，今天会被人注意到' },
   { name: '玉坠吊牌', desc: '温润如玉，今天要温柔待人' },
-  { name: '发夹/发圈', desc: '头发也要有运气，小配件大讲究' },
+  { name: '抓夹/发圈', desc: '头发也要有运气，小配件大讲究' },
   { name: '编织手绳', desc: '手上有颜色，今天话多有人听' },
   { name: '简约戒指', desc: '手上有点东西，今天思路清晰' },
+  { name: '皮质表带', desc: '今天是掌控节奏的一天' },
+  { name: '丝巾/围巾', desc: '脖颈间有风景，今天适合表达' },
+  { name: '帆布包', desc: '轻松出行，灵感随时涌现' },
+  { name: '链条小包', desc: '小而精致，今天做人群焦点' },
+  { name: '草编帽', desc: '户外感加持，今天适合走出去' },
+  { name: '复古胸针', desc: '胸前一点亮，今天有人记住你' },
+  { name: '银镯', desc: '举手投足带风，今天气场全开' },
+  { name: '贝雷帽', desc: '文艺感加持，今天灵感爆棚' },
+  { name: '运动手环', desc: '今天步数会破纪录' },
+  { name: '水晶耳坠', desc: '摇曳生姿，今天有人夸你好看' },
+  { name: '皮质腰带', desc: '系好安全感，今天节奏稳了' },
+  { name: '透明框眼镜', desc: '斯文加成，今天思路清晰好沟通' },
 ];
 
-// 幸运数字 + 暗示
+// 幸运数字 + 暗示（扩容至16组）
 const LUCKY_NUMBERS = [
   { nums: [3, 8], desc: '买奶茶选第三档，刚刚好' },
   { nums: [6, 9], desc: '抽奖箱里选第六个，中奖率高' },
@@ -81,6 +93,14 @@ const LUCKY_NUMBERS = [
   { nums: [7, 8], desc: '车牌尾号带7或8，今天一路顺' },
   { nums: [1, 3], desc: '点外卖凑13元减3元最划算' },
   { nums: [5, 9], desc: '今天走59路公交会有奇遇' },
+  { nums: [0, 8], desc: '选8号窗口排队，今天速度快一倍' },
+  { nums: [3, 6], desc: '36元套餐最划算，商家暗号' },
+  { nums: [1, 4], desc: '今天14:00开会，时机最佳' },
+  { nums: [2, 9], desc: '选第29个评论回复，运气爆棚' },
+  { nums: [5, 7], desc: '57路今天会准时到，不信试试' },
+  { nums: [3, 9], desc: '第39秒绿灯，今天一路绿灯' },
+  { nums: [1, 8], desc: '18楼今天空气最好，适合深呼吸' },
+  { nums: [6, 8], desc: '选第68号，今天运气在68层' },
 ];
 
 // 换签时的咒语
@@ -106,23 +126,32 @@ function hashString(str) {
 }
 
 /**
- * 基于日期（+ 可选盐值）生成今日运势
- * @param {string|null} salt 可选盐值（用于"换一签"功能）
+ * 基于日期 + 星座 + 属相 生成今日运势
+ * 三重种子确保每个用户每天得到独特结果
+ * @param {object} options
+ * @param {string|null} options.zodiac - 星座（如'白羊座'）
+ * @param {string|null} options.chineseZodiac - 属相（如'鼠'）
+ * @param {string|null} salt - 换签盐值
  */
-export function getTodayFortune(salt = null) {
+export function getTodayFortune({ zodiac = null, chineseZodiac = null, salt = null } = {}) {
   const today = new Date();
   const dateStr =
     `${today.getFullYear()}-` +
     `${String(today.getMonth() + 1).padStart(2, '0')}-` +
     `${String(today.getDate()).padStart(2, '0')}`;
 
-  const seed = hashString(salt ? `${dateStr}-${salt}` : dateStr);
+  // 构建个性化种子：日期 + 星座 + 属相 + 盐值
+  const seedParts = [dateStr];
+  if (zodiac) seedParts.push(zodiac);
+  if (chineseZodiac) seedParts.push(chineseZodiac);
+  if (salt) seedParts.push(salt);
+  const seed = hashString(seedParts.join('|'));
 
   const luck = LUCK_LEVELS[seed % LUCK_LEVELS.length];
-  const color = LUCKY_COLORS[seed % LUCKY_COLORS.length];
-  const item = LUCKY_ITEMS[(seed >> 3) % LUCKY_ITEMS.length];
-  const numbers = LUCKY_NUMBERS[(seed >> 5) % LUCKY_NUMBERS.length];
-  const mantra = REFRESH_MANTRAS[(seed >> 7) % REFRESH_MANTRAS.length];
+  const color = LUCKY_COLORS[(seed >> 2) % LUCKY_COLORS.length];
+  const item = LUCKY_ITEMS[(seed >> 4) % LUCKY_ITEMS.length];
+  const numbers = LUCKY_NUMBERS[(seed >> 6) % LUCKY_NUMBERS.length];
+  const mantra = REFRESH_MANTRAS[(seed >> 8) % REFRESH_MANTRAS.length];
 
   return {
     dateStr,

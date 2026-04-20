@@ -15,7 +15,7 @@ import { getOutfitAdvice } from './utils/outfitEngine.js';
 import { getWeatherInfo } from './utils/weatherCodeMap.js';
 import { initWechatShare, isWechatBrowser } from './services/wechatShare.js';
 import { enhanceOutfit } from './services/outfitEnhancer.js';
-import { needsProfileSetup, getProfile, resetProfile } from './services/profile.js';
+import { needsProfileSetup, getProfile, resetProfile, getZodiacFromBirthday, getChineseZodiac } from './services/profile.js';
 
 function getTodayStr() {
   const d = new Date();
@@ -104,17 +104,28 @@ export default function App() {
       const weatherData = await fetchWeather(pos.lat, pos.lon);
       setWeather(weatherData);
 
-      // 检查用户画像，取性别
+      // 检查用户画像，取性别 + 星座 + 属相
       const profileComplete = !needsProfileSetup();
       const profile = profileComplete ? getProfile() : null;
       const gender = profile?.gender || 'neutral';
 
-      const outfitData = getOutfitAdvice(weatherData.apparentTemperature, weatherData.weatherCode, gender);
+      const outfitOptions = {
+        zodiac: hasProfile ? (getProfile()?.answers?.birthday ? getZodiacFromBirthday(getProfile()?.answers?.birthday) : null) : null,
+        chineseZodiac: hasProfile ? (getProfile()?.answers?.birthday ? getChineseZodiac(getProfile()?.answers?.birthday) : null) : null,
+      };
+      const outfitData = getOutfitAdvice(weatherData.apparentTemperature, weatherData.weatherCode, gender, outfitOptions);
       setOutfit(outfitData);
 
       setHasProfile(profileComplete);
+
+      // 构建运势参数：星座 + 属相（用于个性化 seed）
+      const birthday = profile?.answers?.birthday;
+      const zodiac = birthday ? getZodiacFromBirthday(birthday) : null;
+      const chineseZodiac = birthday ? getChineseZodiac(birthday) : null;
+      const fortuneOptions = { zodiac, chineseZodiac, salt: fortuneSalt };
+
       if (profileComplete) {
-        const fortuneData = getTodayFortune(fortuneSalt);
+        const fortuneData = getTodayFortune(fortuneOptions);
         const enhanced = enhanceOutfit(outfitData, weatherData);
         setEnhancedOutfit(enhanced);
         setFortune(fortuneData);
@@ -123,7 +134,7 @@ export default function App() {
           localStorage.setItem('ootd_profile_tip_shown', '1');
         }
       } else {
-        const fortuneData = getTodayFortune(fortuneSalt);
+        const fortuneData = getTodayFortune(fortuneOptions);
         setFortune(fortuneData);
         setEnhancedOutfit(outfitData);
       }
@@ -183,7 +194,11 @@ export default function App() {
   const handleRefreshFortune = () => {
     const newSalt = String(Date.now());
     setFortuneSalt(newSalt);
-    const newFortune = getTodayFortune(newSalt);
+    // 换签时保持星座/属相个性化
+    const birthday = hasProfile ? getProfile()?.answers?.birthday : null;
+    const zodiac = birthday ? getZodiacFromBirthday(birthday) : null;
+    const chineseZodiac = birthday ? getChineseZodiac(birthday) : null;
+    const newFortune = getTodayFortune({ zodiac, chineseZodiac, salt: newSalt });
     setFortune(newFortune);
   };
 
