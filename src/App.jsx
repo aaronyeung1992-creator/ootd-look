@@ -209,17 +209,22 @@ export default function App() {
   };
 
   // 下载图片（兼容 iOS Safari / 微信）
-  const handleDownloadImage = async () => {
+  const handleDownloadImage = () => {
     if (!generatedImageUrl) return;
     const today = new Date();
     const dateStr = `${today.getMonth() + 1}月${today.getDate()}日`;
     const filename = `OOTD_${dateStr}_${fortune?.luck?.label || '今日运势'}.png`;
 
-    // data URL → Blob URL（解决 iOS Safari / 微信不触发 a.download 的问题）
-    const res = await fetch(generatedImageUrl);
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
+    // 直接解析 data:image/png;base64,... 转 Blob（fetch 无法处理 data: URL）
+    const arr = generatedImageUrl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    const blob = new Blob([u8arr], { type: mime });
 
+    const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = blobUrl;
     a.download = filename;

@@ -11,6 +11,7 @@ const ShareCard = forwardRef(function ShareCard({ fortune, weather, city, outfit
   const weekStr = `星期${weekDays[today.getDay()]}`;
   const qrRef = useRef(null);
   const [qrReady, setQrReady] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState('');
 
   const luckEmoji = fortune?.luck?.emoji || '✨';
   const luckLabel = fortune?.luck?.label || '运势不错';
@@ -23,18 +24,17 @@ const ShareCard = forwardRef(function ShareCard({ fortune, weather, city, outfit
   const temp = weather?.apparentTemperature != null ? `${Math.round(weather.apparentTemperature)}°` : '';
   const cityName = city || '';
 
-  // 生成二维码
+  // 生成二维码（用 toDataURL 返回 PNG 图片，html2canvas 能正确截图）
   useEffect(() => {
-    if (!qrRef.current) return;
     let cancelled = false;
     import('qrcode').then(({ default: QRCode }) => {
-      if (cancelled || !qrRef.current) return;
-      QRCode.toCanvas(qrRef.current, window.location.href, {
-        width: 48,
-        margin: 0,
-        color: { dark: '#ffffff', light: '#00000000' },
-      }).then(() => {
-        if (!cancelled) setQrReady(true);
+      if (cancelled) return;
+      QRCode.toDataURL(window.location.href, {
+        width: 96,
+        margin: 1,
+        color: { dark: '#1a1a2e', light: '#ffffff' },
+      }).then(dataUrl => {
+        if (!cancelled) setQrDataUrl(dataUrl);
       }).catch(() => {});
     });
     return () => { cancelled = true; };
@@ -193,7 +193,15 @@ const ShareCard = forwardRef(function ShareCard({ fortune, weather, city, outfit
           justifyContent: 'center',
           flexShrink: 0,
         }}>
-          <canvas ref={qrRef} style={{ width: '48px', height: '48px', display: 'block' }} />
+          {qrDataUrl ? (
+            <img
+              src={qrDataUrl}
+              alt="二维码"
+              style={{ width: '48px', height: '48px', display: 'block', borderRadius: '4px' }}
+            />
+          ) : (
+            <div style={{ width: '48px', height: '48px', background: '#f0f0f0', borderRadius: '4px' }} />
+          )}
         </div>
       </div>
     </div>
