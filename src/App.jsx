@@ -208,15 +208,25 @@ export default function App() {
     }
   };
 
-  // 下载图片
-  const handleDownloadImage = () => {
+  // 下载图片（兼容 iOS Safari / 微信）
+  const handleDownloadImage = async () => {
     if (!generatedImageUrl) return;
     const today = new Date();
     const dateStr = `${today.getMonth() + 1}月${today.getDate()}日`;
+    const filename = `OOTD_${dateStr}_${fortune?.luck?.label || '今日运势'}.png`;
+
+    // data URL → Blob URL（解决 iOS Safari / 微信不触发 a.download 的问题）
+    const res = await fetch(generatedImageUrl);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
     const a = document.createElement('a');
-    a.href = generatedImageUrl;
-    a.download = `OOTD_${dateStr}_${fortune?.luck?.label || '今日运势'}.png`;
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
   };
 
   // 刷新全部
