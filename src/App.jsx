@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Share2, X, CheckCircle, AlertCircle, User } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { RefreshCw, Share2, X, CheckCircle, AlertCircle, User, Download, ImageIcon } from 'lucide-react';
 
 import LoadingSpinner from './components/LoadingSpinner.jsx';
 import WeatherHeader from './components/WeatherHeader.jsx';
 import OutfitCard from './components/OutfitCard.jsx';
 import FortuneCard from './components/FortuneCard.jsx';
 import ProfileSetup from './components/ProfileSetup.jsx';
+import ShareCard from './components/ShareCard.jsx';
 
 import { getCurrentPosition, reverseGeocode } from './services/geolocation.js';
 import { fetchWeather } from './services/weather.js';
@@ -67,6 +68,9 @@ export default function App() {
 
   // 分享弹窗
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState(null);
+  const shareCardRef = useRef(null);
 
   // 微信分享状态
   const [wxShareStatus, setWxShareStatus] = useState({ configured: false, reason: '' });
@@ -183,6 +187,38 @@ export default function App() {
     setFortune(newFortune);
   };
 
+  // 生成分享图片
+  const handleGenerateImage = async () => {
+    setIsGeneratingImage(true);
+    setGeneratedImageUrl(null);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(shareCardRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+      });
+      const url = canvas.toDataURL('image/png');
+      setGeneratedImageUrl(url);
+    } catch (e) {
+      console.error('截图失败', e);
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  // 下载图片
+  const handleDownloadImage = () => {
+    if (!generatedImageUrl) return;
+    const today = new Date();
+    const dateStr = `${today.getMonth() + 1}月${today.getDate()}日`;
+    const a = document.createElement('a');
+    a.href = generatedImageUrl;
+    a.download = `OOTD_${dateStr}_${fortune?.luck?.label || '今日运势'}.png`;
+    a.click();
+  };
+
   // 刷新全部
   const handleRefreshAll = () => {
     setFortuneSalt(null);
@@ -291,8 +327,8 @@ export default function App() {
       {/* 分享弹窗 */}
       {showShareModal && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50 p-4"
-          onClick={() => setShowShareModal(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end justify-center z-50 p-4"
+          onClick={() => { setShowShareModal(false); setGeneratedImageUrl(null); }}
         >
           <div
             className="glass rounded-3xl p-6 w-full max-w-sm mb-4 animate-slide-up"
@@ -301,60 +337,97 @@ export default function App() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-white font-semibold text-base">生成本日签</h3>
               <button
-                onClick={() => setShowShareModal(false)}
+                onClick={() => { setShowShareModal(false); setGeneratedImageUrl(null); }}
                 className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
               >
                 <X size={16} className="text-white" />
               </button>
             </div>
 
-            <div className="glass-dark rounded-2xl p-4 mb-4 text-center">
-              <p className="text-5xl mb-3">{fortune?.luck?.emoji}</p>
-              <p className="text-white font-bold text-lg">{fortune?.luck?.label}</p>
-              <p className="text-white/70 text-sm mt-1">{fortune?.luck?.phrase}</p>
-              <div className="mt-3 pt-3 border-t border-white/10 flex gap-4 justify-center text-xs text-white/60">
-                <span>幸运色 · {fortune?.color?.name}</span>
-                <span>今日佩戴 · {typeof fortune?.item === 'string' ? fortune?.item : fortune?.item?.name}</span>
+            {/* 卡片预览区（隐藏用于截图 / 显示预览图） */}
+            {generatedImageUrl ? (
+              <div className="mb-4">
+                <img
+                  src={generatedImageUrl}
+                  alt="日签预览"
+                  className="w-full rounded-2xl shadow-2xl"
+                />
               </div>
-            </div>
+            ) : (
+              <div className="mb-4 overflow-hidden rounded-2xl" style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                <ShareCard
+                  ref={shareCardRef}
+                  fortune={fortune}
+                  weather={weather}
+                  city={city}
+                  outfit={enhancedOutfit || outfit}
+                />
+              </div>
+            )}
 
-            {/* 分享方式 */}
-            {navigator.share ? (
-              <button
-                onClick={async () => {
-                  try {
-                    await navigator.share({
-                      title: `OOTD · ${fortune?.luck?.label} · ${fortune?.color?.name}色`,
-                      text: `${fortune?.luck?.phrase} ✨ ${fortune?.luck?.emoji} 查看今日穿搭运势`,
-                      url: window.location.href,
-                    });
-                  } catch (e) {
-                    // 用户取消分享
-                  }
-                  setShowShareModal(false);
-                }}
-                className="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-semibold transition-colors active:scale-95 flex items-center justify-center gap-2"
-              >
-                <Share2 size={16} />
-                分享到微信 / 更多 App
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  setShowShareModal(false);
-                }}
-                className="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-semibold transition-colors active:scale-95 flex items-center justify-center gap-2"
-              >
-                复制链接分享给朋友
-              </button>
-            )}
-              </div>
-            ) : (
-              <p className="text-white/60 text-sm text-center">
-                📸 长按屏幕截图，分享给好友
+            {/* 操作按钮区 */}
+            <div className="space-y-2.5">
+              {!generatedImageUrl ? (
+                <button
+                  onClick={handleGenerateImage}
+                  disabled={isGeneratingImage}
+                  className="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-60 text-black font-semibold transition-colors active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {isGeneratingImage ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin" />
+                      生成中...
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon size={16} />
+                      生成日签图片
+                    </>
+                  )}
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleDownloadImage}
+                    className="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-semibold transition-colors active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <Download size={16} />
+                    保存图片到相册
+                  </button>
+                  <button
+                    onClick={() => setGeneratedImageUrl(null)}
+                    className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 text-sm transition-colors active:scale-95"
+                  >
+                    重新生成
+                  </button>
+                </>
+              )}
+
+              {/* 系统分享（仅 mobile 支持） */}
+              {navigator.share && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.share({
+                        title: `OOTD · ${fortune?.luck?.label} · 今日运势`,
+                        text: `${fortune?.luck?.phrase} ✨ 快来看看你的今日运势和穿搭推荐~`,
+                        url: window.location.href,
+                      });
+                    } catch (e) { /* 用户取消 */ }
+                    setShowShareModal(false);
+                    setGeneratedImageUrl(null);
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-sm transition-colors active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <Share2 size={14} />
+                  分享链接给朋友
+                </button>
+              )}
+
+              <p className="text-white/30 text-xs text-center pt-1">
+                💡 长按图片可保存到手机相册
               </p>
-            )}
+            </div>
           </div>
         </div>
       )}
