@@ -402,13 +402,21 @@ export default function App() {
                 </button>
               ) : (
                 <>
-                  <button
-                    onClick={handleDownloadImage}
-                    className="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-semibold transition-colors active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    <Download size={16} />
-                    保存图片到相册
-                  </button>
+                  {/* 微信内：长按保存；其他浏览器：点击下载 */}
+                  {isWechatBrowser() ? (
+                    <div className="w-full py-3 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-200 font-medium flex items-center justify-center gap-2">
+                      <Download size={16} />
+                      长按上方图片保存到相册
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleDownloadImage}
+                      className="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-semibold transition-colors active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      <Download size={16} />
+                      保存图片到相册
+                    </button>
+                  )}
                   <button
                     onClick={() => setGeneratedImageUrl(null)}
                     className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 text-sm transition-colors active:scale-95"
