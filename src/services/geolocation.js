@@ -3,11 +3,43 @@
  */
 
 /**
+ * 通过 IP 获取大致位置（兜底，毫秒级）
+ */
+async function getLocationByIP() {
+  try {
+    const res = await fetch('https://ipapi.co/json/', {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) throw new Error('ipapi error');
+    const data = await res.json();
+    if (data.latitude && data.longitude) {
+      return {
+        lat: data.latitude,
+        lon: data.longitude,
+        city: data.city || null,
+        source: 'ip',
+      };
+    }
+  } catch (_) {
+    // 静默失败
+  }
+  return null;
+}
+
+/**
  * 获取用户地理位置 (经纬度)
- * 若用户拒绝，则降级返回北京坐标
+ * 优先 GPS → 超时则降级 IP 定位
  */
 export function getCurrentPosition() {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
+    // 1. 优先尝试 IP 定位（毫秒级，先拿个大概位置让页面快速显示）
+    const ipLoc = await getLocationByIP();
+    if (ipLoc) {
+      resolve({ ...ipLoc, fallback: false });
+      return;
+    }
+
+    // 2. IP 失败，尝试 GPS
     if (!navigator.geolocation) {
       resolve({ lat: 39.9042, lon: 116.4074, city: '北京', fallback: true });
       return;
@@ -19,14 +51,19 @@ export function getCurrentPosition() {
           lat: pos.coords.latitude,
           lon: pos.coords.longitude,
           city: null,
+          source: 'gps',
           fallback: false,
         });
       },
       () => {
-        // 定位被拒绝或失败，降级为北京
+        // GPS 拒绝或失败，降级为北京
         resolve({ lat: 39.9042, lon: 116.4074, city: '北京', fallback: true });
       },
-      { timeout: 8000, maximumAge: 300000 }
+      {
+        timeout: 20000,    // 手机 GPS 定位慢，从 8s 改为 20s
+        maximumAge: 300000, // 5 分钟内缓存
+        enableHighAccuracy: false, // 不强制高精度，避免更慢
+      }
     );
   });
 }
@@ -59,6 +96,7 @@ export async function reverseGeocode(lat, lon) {
           'Accept': 'application/json',
           'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
         },
+        signal: AbortSignal.timeout(10000), // 10s 超时兜底
       });
 
       if (!res.ok) throw new Error('Nominatim error');
